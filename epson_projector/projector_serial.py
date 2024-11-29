@@ -42,7 +42,7 @@ class ProjectorSerial:
             except:
                 pass
         try:
-            with async_timeout.timeout(DEFAULT_TIMEOUT):
+            async with async_timeout.timeout(DEFAULT_TIMEOUT):
                 (
                     self._reader,
                     self._writer,
@@ -110,7 +110,7 @@ class ProjectorSerial:
             await self.async_init()
         if self._writer and self._isOpen and command:
             try:
-                with async_timeout.timeout(timeout):
+                async with async_timeout.timeout(timeout):
                     _LOGGER.debug("Sent to Epson: %r with timeout %d", command, timeout)
                     self._writer.write(command.encode())
                     response = await self._reader.readuntil(COLON.encode())

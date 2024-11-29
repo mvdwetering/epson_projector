@@ -43,7 +43,7 @@ class ProjectorTcp:
     async def async_init(self):
         """Async init to open connection with projector."""
         try:
-            with async_timeout.timeout(10):
+            async with async_timeout.timeout(10):
                 self._reader, self._writer = await asyncio.open_connection(
                     host=self._host, port=self._port, loop=self._loop
                 )
@@ -97,7 +97,7 @@ class ProjectorTcp:
             await self.async_init()
         if self._isOpen and command:
             bytes_to_read = bytes_to_read if bytes_to_read else 16
-            with async_timeout.timeout(timeout):
+            async with async_timeout.timeout(timeout):
                 self._writer.write(command.encode())
                 response = await self._reader.read(bytes_to_read)
                 response = response.decode().replace(CR_COLON, "")
@@ -109,7 +109,7 @@ class ProjectorTcp:
         """Send TCP request for serial to Epson."""
         if not self._serial:
             try:
-                with async_timeout.timeout(10):
+                async with async_timeout.timeout(10):
                     power_on = await self.get_property(POWER, get_timeout(POWER))
                     if power_on == EPSON_CODES[POWER]:
                         reader, writer = await asyncio.open_connection(

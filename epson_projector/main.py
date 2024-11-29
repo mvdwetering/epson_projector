@@ -120,7 +120,7 @@ class Projector:
                            type='json_query', command=False):
         """Send request to Epson."""
         try:
-            with async_timeout.timeout(timeout):
+            async with async_timeout.timeout(timeout):
                 url = '{url}{type}'.format(
                     url=self._http_url,
                     type=type)
