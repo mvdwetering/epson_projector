@@ -4,7 +4,7 @@ import logging
 import asyncio
 import serial_asyncio
 from serial.serialutil import SerialException
-from .const import ESCVP_HELLO_COMMAND, COLON, CR, GET_CR, BUSY, ERROR, SNO
+from .const import EPSON_KEY_COMMANDS, ESCVP_HELLO_COMMAND, COLON, CR, GET_CR, BUSY, ERROR, SNO
 import async_timeout
 
 _LOGGER = logging.getLogger(__name__)
@@ -99,7 +99,10 @@ class ProjectorSerial:
 
     async def send_command(self, command, timeout):
         """Send command to Epson."""
-        response = await self.send_request(timeout=timeout, command=command + CR)
+        # TODO: Taking only first for now. I think 1 command should be 1 serial command. 
+        #       The only exception is "PWR OFF" which has 2 key commands, but should just send PWR OFF on serial I think.
+        command_string = " ".join(EPSON_KEY_COMMANDS[command][0])
+        response = await self.send_request(timeout=timeout, command=command_string + CR)
         return response
 
     async def send_request(self, timeout, command):
