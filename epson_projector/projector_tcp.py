@@ -3,6 +3,8 @@ import logging
 
 import asyncio
 
+from epson_projector.escvpnet.escvpnet import EscVpNet
+
 from .base_connection import BaseProjectorConnection
 from .const import (
     BUSY,
@@ -27,17 +29,20 @@ class ProjectorTcp(BaseProjectorConnection):
     Epson TCP connector
     """
 
-    def __init__(self, host, port=3629):
+    def __init__(self, host, port=3629, password: str | None = None):
         """
         Epson TCP connector
 
         :param str host:    IP address of Projector
         :param int port:    Port to connect to. Default 3629.
+        :param str | None password:  Password for ESC/VP.net connection. Default None (no password).
         """
         self._host = host
         self._port = port
+        self._password = password
         self._isOpen = False
         self._serial = None
+        self._escvp21 = None
 
     async def async_init(self):
         """Async init to open connection with projector."""
@@ -65,6 +70,8 @@ class ProjectorTcp(BaseProjectorConnection):
     def close(self):
         if self._isOpen:
             self._writer.close()
+        if self._escvp21:
+            self._escvp21.close()
 
     async def get_property(self, command, timeout, bytes_to_read=16):
         """Get property state from device."""
@@ -129,3 +136,23 @@ class ProjectorTcp(BaseProjectorConnection):
                     "Timeout error receiving SERIAL of projector. Is projector turned on?"
                 )
         return self._serial
+
+    # NEW API
+
+    async def connect(self):
+        escvpnet = EscVpNet(host=self._host, password=self._password)
+        self._escvp21 = await escvpnet.connect()
+
+    async def get(self, command) -> str:
+        """Get property state from device."""
+        if not self._escvp21:
+            raise Exception("Not connected to projector")
+
+        return await self._escvp21.get(command)
+
+    async def set(self, command, value) -> None:
+        """Set property state on device."""
+        if not self._escvp21:
+            raise Exception("Not connected to projector")
+
+        await self._escvp21.set(command, value)

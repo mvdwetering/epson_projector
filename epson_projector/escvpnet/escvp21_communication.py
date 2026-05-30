@@ -77,6 +77,14 @@ class EscVp21Communication:
                 f"Command '{command}={value}' failed with response: {response}"
             )
 
+    async def null(self) -> None:
+        """Sends the NULL command."""
+        response = await self.raw_command("")
+        if response:
+            raise EscVp21CommandError(
+                f"NULL command failed with response: {response}"
+            )
+
     def close(self):
         """Close the underlying connection."""
         if self._writer:

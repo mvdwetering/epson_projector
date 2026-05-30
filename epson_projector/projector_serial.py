@@ -3,6 +3,8 @@ import logging
 
 import asyncio
 import serialx
+
+from epson_projector.escvpnet.escvp21_communication import EscVp21Communication
 from .const import ESCVP_HELLO_COMMAND, COLON, CR, GET_CR, BUSY, ERROR, SNO
 from .base_connection import BaseProjectorConnection
 
@@ -23,12 +25,14 @@ class ProjectorSerial(BaseProjectorConnection):
 
         :param str host:    Device to connect to.
         """
-        self._host = host
+        self._url = host
         self._reader = None
         self._writer = None
         self._timeouts = 0
         self._isOpen = False
         self._serial = None
+
+        self._escvp21: EscVp21Communication | None = None
 
     async def async_init(self):
         """Async init to open serial connection with projector."""
@@ -45,7 +49,7 @@ class ProjectorSerial(BaseProjectorConnection):
                     self._reader,
                     self._writer,
                 ) = await serialx.open_serial_connection(
-                    url=self._host, baudrate=9600
+                    url=self._url, baudrate=9600
                 )
                 if self._reader and self._writer:
                     self._isOpen = True
@@ -72,6 +76,11 @@ class ProjectorSerial(BaseProjectorConnection):
         return False
 
     def close(self):
+        if self._escvp21:
+            _LOGGER.debug("Closing ESC/VP.net connection")
+            self._escvp21.close()
+            self._escvp21 = None
+            return
         if self._writer and not self._writer.is_closing():
             _LOGGER.debug("Closing serial connection")
             self._writer.close()
@@ -139,3 +148,39 @@ class ProjectorSerial(BaseProjectorConnection):
             else:
                 self._serial = response
         return self._serial
+
+    # NEW API
+    
+
+    async def connect(self) -> None:
+        """Establish connection. This will make a connection to the projector and make sure it can transmit data."""
+        try:
+            async with asyncio.timeout(DEFAULT_TIMEOUT):
+                (
+                    self._reader,
+                    self._writer,
+                ) = await serialx.open_serial_connection(
+                    url=self._url, baudrate=9600
+                )
+                if self._reader and self._writer:
+                    escvp21 = EscVp21Communication(self._reader, self._writer)
+                    await escvp21.null()
+                    _LOGGER.info("Connection open")
+                    self._escvp21 = escvp21
+        except asyncio.TimeoutError as e:
+            raise Exception("Timeout error during connection") from e   
+        except (serialx.SerialException, OSError) as se:
+            raise Exception("Problem opening serial connection") from se
+
+    async def get(self, command) -> str:
+        """Get property state from device."""
+        if not self._escvp21:
+            raise Exception("Not connected")
+        return await self._escvp21.get(command)
+
+    async def set(self, command, value) -> None:
+        """Set property state on device."""
+        if not self._escvp21:
+            raise Exception("Not connected")
+        await self._escvp21.set(command, value)
+

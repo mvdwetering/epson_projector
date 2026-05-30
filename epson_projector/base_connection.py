@@ -30,3 +30,21 @@ class BaseProjectorConnection(abc.ABC):
     def close(self):
         """Close the connection."""
         pass
+
+    # NEW API
+
+    @abc.abstractmethod
+    async def connect(self) -> None:
+        """Establish connection. This will make a connection to the projector and make sure it can transmit data."""
+        pass
+
+    @abc.abstractmethod
+    async def get(self, command) -> str:
+        """Get property state from device."""
+        pass
+
+    @abc.abstractmethod
+    async def set(self, command, value) -> None:
+        """Set property state on device."""
+        pass
+

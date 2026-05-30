@@ -1,8 +1,12 @@
 """Main of Epson projector module."""
 import logging
 
+import aiohttp
+
+from .enums import PowerStatus, CMode
+
 from .base_connection import BaseProjectorConnection
-from .const import BUSY, TCP_PORT, HTTP_PORT, POWER, HTTP, TCP, SERIAL
+from .const import BUSY, TCP_PORT, HTTP_PORT, POWER
 from .timeout import get_timeout
 
 from .lock import Lock
@@ -19,46 +23,72 @@ class Projector:
 
     def __init__(
         self,
-        host,
-        websession=None,
-        type=HTTP,
+        connection: BaseProjectorConnection,
         timeout_scale=1.0,
-        http_port=HTTP_PORT
     ):
         """
         Epson Projector controller.
 
-        :param str host:        Hostname/IP/serial to the projector
-        :param obj websession:  Websession to pass for HTTP protocol
-        :param str type:        Type of connection to use ('http', 'tcp', 'serial')
         :param timeout_scale    Factor to multiply default timeouts by (for slow projectors)
-        :param int http_port:   Port to connect to for HTTP protocol. Default 80.
+        :param BaseProjectorConnection connection: Pre-initialized connection to use.
 
         """
         self._lock = Lock()
         self._type = type
         self._timeout_scale = timeout_scale
         self._power = None
-        self._projector:BaseProjectorConnection
-        if self._type == HTTP:
-            from .projector_http import ProjectorHttp
-            self._projector = ProjectorHttp(
-                host=host, websession=websession, port=http_port
-            )
-        elif self._type == TCP:
-            from .projector_tcp import ProjectorTcp
-            self._projector = ProjectorTcp(host, TCP_PORT)
-        elif self._type == SERIAL:
-            from .projector_serial import ProjectorSerial
-            self._projector = ProjectorSerial(host)
-        else:
-            raise ValueError(
-                f"Invalid type {self._type}."
-            )
+
+        self._projector = connection
+
+    @staticmethod
+    def create_http(
+        host: str,
+        password: str | None = None,
+        port: int = HTTP_PORT,
+    ) -> "Projector":
+        """
+        Create an Epson Projector connected through HTTP.
+
+        :param str host:             Hostname/IP/serial to the projector
+        :param str | None password:  Optional password for HTTP
+        :param int port:             HTTP port. Default 80.
+        """
+        from .projector_http import ProjectorHttp
+        return Projector(connection=ProjectorHttp(
+            host=host, password=password, port=port
+        ))
+
+    @staticmethod
+    def create_escvpnet(
+        host: str,
+        password: str | None = None,
+    ) -> "Projector":
+        """
+        Create an Epson Projector connected through ESC/VP.net.
+
+        :param str host:             Hostname/IP/serial to the projector
+        :param str | None password:  Optional password for ESC/VP.net connection
+        """
+        from .projector_tcp import ProjectorTcp
+        connection = ProjectorTcp(host, TCP_PORT, password=password)
+        return Projector(connection=connection)
+
+    @staticmethod
+    def create_serial(
+        url: str,
+    ) -> "Projector":
+        """
+        Create an Epson Projector connected through serial.
+
+        :param str url:             Serialx supported URL for the projector
+        """
+        from .projector_serial import ProjectorSerial
+        return Projector(connection=ProjectorSerial(url))
 
     def close(self):
         """Close connection."""
-        self._projector.close()
+        if self._projector:
+            self._projector.close()
 
     def set_timeout_scale(self, timeout_scale=1.0):
         """Set timeout scale for commands (to compensate for slow projectors)."""
@@ -66,7 +96,8 @@ class Projector:
 
     async def get_serial_number(self):
         """Get serial number from device."""
-        return await self._projector.get_serial_number()
+        return await self._projector.get("SNO")
+        # return await self._projector.get_serial_number()
 
     async def get_power(self):
         """Get Power info."""
@@ -100,3 +131,78 @@ class Projector:
         if self._lock.checkLock():
             return BUSY
         return await self._projector.send_request(params=command, timeout=10)
+
+
+    # New API
+
+    async def connect(self):
+        """Establish connection."""
+        await self._projector.connect()
+
+    # Power
+
+    async def pwr_on(self) -> None:
+        """Turn on the projector."""
+        await self._projector.set("PWR", "ON")
+
+    async def pwr_off(self) -> None:
+        """Turn off the projector."""
+        await self._projector.set("PWR", "OFF")
+
+    async def pwr_get(self) -> "PowerStatus":
+        """Get power status."""
+        response = await self._projector.get("PWR")
+        return PowerStatus(response)
+
+
+
+    # Serial number
+    
+    async def sno_get(self) -> str | None:
+        """Get serial number."""
+        return await self._projector.get("SNO")
+
+    # Lamp
+    
+    async def lamp_get(self) -> int | None:
+        """Get lamp hours."""
+        response = await self._projector.get("LAMP")
+        return int(response)
+
+    # Volume
+
+    async def vol_get(self) -> int | None:
+        """Get volume level."""
+        response = await self._projector.get("VOL")
+        return int(response)
+
+    async def vol_set(self, value: int) -> None:
+        """Set volume level."""
+        await self._projector.set("VOL", str(value))
+
+    async def vol_inc(self) -> None:
+        """Increase volume level."""
+        await self._projector.set("VOL", "INC")
+
+    async def vol_dec(self) -> None:
+        """Decrease volume level."""
+        await self._projector.set("VOL", "DEC")
+
+    async def vol_init(self) -> None:
+        """Initialize volume level."""
+        await self._projector.set("VOL", "INIT")
+
+    # CMODE: Color mode (dynamic, natural, cinema, etc.)
+
+    async def cmode_get(self) -> CMode | None:
+        """Get color mode."""
+        response = await self._projector.get("CMODE")
+        return CMode(response)
+    
+    async def cmode_set(self, value: CMode) -> None:
+        """Set color mode."""
+        await self._projector.set("CMODE", value.value)
+
+    async def cmode_init(self) -> None:
+        """Initialize color mode."""
+        await self._projector.set("CMODE", "INIT")
