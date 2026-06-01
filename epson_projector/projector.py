@@ -62,6 +62,7 @@ class Projector:
     def create_escvpnet(
         host: str,
         password: str | None = None,
+        port: int = TCP_PORT,
     ) -> "Projector":
         """
         Create an Epson Projector connected through ESC/VP.net.
@@ -70,7 +71,7 @@ class Projector:
         :param str | None password:  Optional password for ESC/VP.net connection
         """
         from .projector_tcp import ProjectorTcp
-        connection = ProjectorTcp(host, TCP_PORT, password=password)
+        connection = ProjectorTcp(host, port, password=password)
         return Projector(connection=connection)
 
     @staticmethod
