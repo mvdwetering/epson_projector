@@ -30,18 +30,22 @@ class EscVp21Communication:
     def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         self._reader = reader
         self._writer = writer
+        self._lock = asyncio.Lock()
 
     async def raw_command(self, command: str) -> str:
         """Send a raw command and return the response string. Raises local exceptions on connection errors."""
         command += "\r"
         try:
-            payload = command.encode("ascii")
-            _LOGGER.debug("Send: %s", payload)
-            self._writer.write(payload)
-            await self._writer.drain()
+            async with self._lock:
+                start_time = asyncio.get_event_loop().time()
+                payload = command.encode("ascii")
+                _LOGGER.debug("Send: %s", payload)
+                self._writer.write(payload)
+                await self._writer.drain()
 
-            raw_response = await self._reader.readuntil(COLON)
-            _LOGGER.debug("Recv: %s", raw_response.strip())
+                raw_response = await self._reader.readuntil(COLON)
+                end_time = asyncio.get_event_loop().time()
+                _LOGGER.debug("Recv: %s (%.3f ms)", raw_response.strip(), (end_time - start_time) * 1000)
 
             response = raw_response[:-1].decode("ascii")  # remove trailing colon
             return response.rstrip("\r")
@@ -63,6 +67,11 @@ class EscVp21Communication:
 
         # Extract the value part of the response, e.g. "01" for "PWR? -> PWR=01"
         if (parts := response.split("=", 1)) and len(parts) == 2:
+            if parts[0] != command:
+                _LOGGER.error("Unexpected response command '%s' for get command '%s'", parts[0], command)
+                # raise EscVp21CommandError(
+                #     f"Unexpected response for command '{command}': {response}"
+                # )
             return parts[1]
 
         raise EscVp21CommandError(
