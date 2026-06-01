@@ -3,7 +3,7 @@ import logging
 
 import aiohttp
 
-from .enums import PowerStatus, CMode
+from .enums import PowerStatus, CMode, Source
 
 from .base_connection import BaseProjectorConnection
 from .const import BUSY, TCP_PORT, HTTP_PORT, POWER
@@ -149,7 +149,7 @@ class Projector:
         """Turn off the projector."""
         await self._projector.set("PWR", "OFF")
 
-    async def pwr_get(self) -> "PowerStatus":
+    async def pwr_get(self) -> PowerStatus:
         """Get power status."""
         response = await self._projector.get("PWR")
         return PowerStatus(response)
@@ -158,20 +158,20 @@ class Projector:
 
     # Serial number
     
-    async def sno_get(self) -> str | None:
+    async def sno_get(self) -> str:
         """Get serial number."""
         return await self._projector.get("SNO")
 
     # Lamp
     
-    async def lamp_get(self) -> int | None:
+    async def lamp_get(self) -> int:
         """Get lamp hours."""
         response = await self._projector.get("LAMP")
         return int(response)
 
     # Volume
 
-    async def vol_get(self) -> int | None:
+    async def vol_get(self) -> int:
         """Get volume level."""
         response = await self._projector.get("VOL")
         return int(response)
@@ -194,7 +194,7 @@ class Projector:
 
     # CMODE: Color mode (dynamic, natural, cinema, etc.)
 
-    async def cmode_get(self) -> CMode | None:
+    async def cmode_get(self) -> CMode:
         """Get color mode."""
         response = await self._projector.get("CMODE")
         return CMode(response)
@@ -206,3 +206,14 @@ class Projector:
     async def cmode_init(self) -> None:
         """Initialize color mode."""
         await self._projector.set("CMODE", "INIT")
+
+    # Source: Input source (HDMI1, HDMI2, VGA, etc.)
+
+    async def source_get(self) -> Source:
+        """Get source."""
+        response = await self._projector.get("SOURCE")
+        return Source(response)
+    
+    async def source_set(self, value: Source) -> None:
+        """Set source."""
+        await self._projector.set("SOURCE", value.value)
