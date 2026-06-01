@@ -23,7 +23,7 @@ from .const import (
     SERIAL_BYTE,
     JSON_QUERY,
 )
-from .error import ProjectorUnavailableError
+from .error import ProjectorConnectionError, ProjectorUnauthorizedError, ProjectorUnavailableError
 from .timeout import get_timeout
 from .base_connection import BaseProjectorConnection
 
@@ -57,6 +57,7 @@ class ProjectorHttp(BaseProjectorConnection):
         }
         self._serial_number = None
         self._websession = None
+        self._lock = asyncio.Lock()
 
     def close(self):
         if self._websession and not self._websession.closed:
@@ -152,7 +153,6 @@ class ProjectorHttp(BaseProjectorConnection):
 
     async def connect(self):
         """Establish connection. This will make a connection to the projector and make sure it can transmit data."""
-        # TODO: Send a NULL command to the projector to verify connection (TCP and password check)
         middlewares = []
         if self._password:
             digest_auth = aiohttp.DigestAuthMiddleware(
@@ -160,36 +160,44 @@ class ProjectorHttp(BaseProjectorConnection):
             )
             middlewares.append(digest_auth)
 
-        websession = aiohttp.ClientSession(middlewares=middlewares)
+        websession = aiohttp.ClientSession(middlewares=middlewares, raise_for_status=True)
         self._websession = websession
 
         await self.null()
 
 
-
     async def _send_request(self, url, params, timeout) -> str:
         try:
-            async with asyncio.timeout(timeout):
-                _LOGGER.debug("Send: GET '%s' %s", url, params)
-                async with self._websession.get(
-                    url=url, params=params, headers=self._headers
-                ) as response:
-                    _LOGGER.debug("Recv status: %s", response.status)
-                    if response.status != HTTP_OK:
-                        _LOGGER.warning("Error message %d from Epson.", response.status)
-                        response.raise_for_status()
-                    # Need to consume the response body here because 
-                    # we are in a context manager and it will get out of scope
-                    response_text = await response.text()
-                    _LOGGER.debug("Recv content: '%s'", response_text)
-                    return response_text
+            async with self._lock:
+                async with asyncio.timeout(timeout):
+                    _LOGGER.debug("Send: GET '%s' %s", url, params)
+                    start_time = asyncio.get_event_loop().time()
+                    async with self._websession.get(
+                        url=url, params=params, headers=self._headers
+                    ) as response:
+                        if response.status != HTTP_OK:
+                            _LOGGER.warning("Error message with status %d from Epson.", response.status)
+                            response.raise_for_status()
+                        # Need to consume the response body here because we are in a context manager
+                        # and it will be out of scope when doing it later
+                        response_text = await response.text()
+                        end_time = asyncio.get_event_loop().time()
+                        _LOGGER.debug("Recv (%d): %s (%.3f ms)", response.status, response_text.strip(), (end_time - start_time) * 1000)
+
+                        return response_text
+        except aiohttp.ClientResponseError as e:
+            _LOGGER.debug("ClientResponseError: %s", e)
+            if e.status == 401:
+                raise ProjectorUnauthorizedError("Unauthorized") from e
+            raise ProjectorConnectionError() from e
         except (
             aiohttp.ClientError,
             aiohttp.ClientConnectionError,
             TimeoutError,
             asyncio.exceptions.TimeoutError,
         ) as e:
-            raise ProjectorUnavailableError(STATE_UNAVAILABLE) from e
+            _LOGGER.debug("Error: %s", e)
+            raise ProjectorConnectionError() from e
 
     async def get(self, command) -> str:
         """Get property state from device."""

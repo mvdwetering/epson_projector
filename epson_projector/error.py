@@ -12,3 +12,9 @@ class ProjectorError(Exception):
 
 class ProjectorUnavailableError(ProjectorError):
     """Projector unavailable error."""
+
+class ProjectorConnectionError(ProjectorError):
+    """Projector connection error."""
+
+class ProjectorUnauthorizedError(ProjectorError):
+    """Projector unauthorized error."""

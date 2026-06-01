@@ -3,6 +3,8 @@ import logging
 
 import asyncio
 
+from epson_projector.error import ProjectorUnauthorizedError
+from epson_projector.escvpnet.error import EscVpNetForbiddenStatus, EscVpNetForbiddenStatus, EscVpNetUnauthorizedStatus
 from epson_projector.escvpnet.escvpnet import EscVpNet
 
 from .base_connection import BaseProjectorConnection
@@ -140,8 +142,11 @@ class ProjectorTcp(BaseProjectorConnection):
     # NEW API
 
     async def connect(self):
-        escvpnet = EscVpNet(host=self._host, password=self._password)
-        self._escvp21 = await escvpnet.connect()
+        try:
+            escvpnet = EscVpNet(host=self._host, password=self._password)
+            self._escvp21 = await escvpnet.connect()
+        except (EscVpNetUnauthorizedStatus, EscVpNetForbiddenStatus) as e:
+            raise ProjectorUnauthorizedError("Unauthorized access to projector") from e
 
     async def get(self, command) -> str:
         """Get property state from device."""
