@@ -165,7 +165,8 @@ class ProjectorHttp(BaseProjectorConnection):
         websession = aiohttp.ClientSession(middlewares=middlewares, raise_for_status=True)
         self._websession = websession
 
-        await self.null()
+        await self.get("PWR")
+        # await self.null()
 
 
     async def _send_request(self, url, params, timeout) -> str:
