@@ -44,14 +44,14 @@ class Projector:
     def create_http(
         host: str,
         password: str | None = None,
-        port: int = HTTP_PORT,
+        port: int | None = None,
     ) -> "Projector":
         """
         Create an Epson Projector connected through HTTP.
 
         :param str host:             Hostname/IP/serial to the projector
         :param str | None password:  Optional password for HTTP
-        :param int port:             HTTP port. Default 80.
+        :param int | None port:      HTTP port. Default 80.
         """
         from .projector_http import ProjectorHttp
         return Projector(connection=ProjectorHttp(
@@ -62,7 +62,7 @@ class Projector:
     def create_escvpnet(
         host: str,
         password: str | None = None,
-        port: int = TCP_PORT,
+        port: int | None = None,
     ) -> "Projector":
         """
         Create an Epson Projector connected through ESC/VP.net.
@@ -71,7 +71,7 @@ class Projector:
         :param str | None password:  Optional password for ESC/VP.net connection
         """
         from .projector_tcp import ProjectorTcp
-        connection = ProjectorTcp(host, port, password=password)
+        connection = ProjectorTcp(host, password=password, port=port)
         return Projector(connection=connection)
 
     @staticmethod

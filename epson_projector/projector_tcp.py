@@ -19,6 +19,7 @@ from .const import (
     EPSON_CODES,
     POWER,
     SERIAL_BYTE,
+    TCP_PORT,
     TCP_SERIAL_PORT,
 )
 from .timeout import get_timeout
@@ -31,16 +32,16 @@ class ProjectorTcp(BaseProjectorConnection):
     Epson TCP connector
     """
 
-    def __init__(self, host, port=3629, password: str | None = None):
+    def __init__(self, host, password: str | None = None, port: int | None = None):
         """
         Epson TCP connector
 
         :param str host:    IP address of Projector
-        :param int port:    Port to connect to. Default 3629.
+        :param int | None port:    Port to connect to. Default 3629.
         :param str | None password:  Password for ESC/VP.net connection. Default None (no password).
         """
         self._host = host
-        self._port = port
+        self._port = port or TCP_PORT
         self._password = password
         self._isOpen = False
         self._serial = None

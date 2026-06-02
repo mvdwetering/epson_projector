@@ -15,6 +15,7 @@ from .const import (
     EPSON_KEY_COMMANDS,
     DIRECT_SEND,
     HTTP_OK,
+    HTTP_PORT,
     SNO,
     STATE_UNAVAILABLE,
     POWER,
@@ -37,23 +38,24 @@ class ProjectorHttp(BaseProjectorConnection):
     Control your projector with Python.
     """
 
-    def __init__(self, host:str, password: str | None = None, port:int=80):
+    def __init__(self, host:str, password: str | None = None, port:int | None = None):
         """
         Epson Projector controller.
 
-        :param str host:        IP address or hostname of Projector
+        :param str host:             IP address or hostname of Projector
         :param str | None password:  Optional password for HTTP
-        :param int port:        Port to connect to. Default 80.
+        :param int | None port:      Port to connect to. Default 80.
         """
         self._host = host
+        self._port = port or HTTP_PORT
         self._password = password
-        self._base_url = f"http://{self._host}:{port}/cgi-bin/"
+        self._base_url = f"http://{self._host}:{self._port}/cgi-bin/"
         self._json_query_url = self._base_url + JSON_QUERY
         self._direct_send_url = self._base_url + DIRECT_SEND
         self._headers = {
             "Accept-Encoding": ACCEPT_ENCODING,
             "Accept": ACCEPT_HEADER,
-            "Referer": f"http://{self._host}:{port}/cgi-bin/webconf",
+            "Referer": f"http://{self._host}:{self._port}/cgi-bin/webconf",
         }
         self._serial_number = None
         self._websession = None
