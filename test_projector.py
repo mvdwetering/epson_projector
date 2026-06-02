@@ -36,8 +36,6 @@ def _create_projector_from_args(args, password):
         raise ValueError(f"Unsupported connection type: {args.type}")
 
 async def main(args):
-    """Run main with aiohttp ClientSession."""
-
     password = None
     projector = None
 
@@ -77,7 +75,7 @@ async def main(args):
             data = await projector.lamp_get()
             print(f"LAMP is {data} hours")
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Exception: {e}")
         await asyncio.sleep(1)
 
     projector.close()
