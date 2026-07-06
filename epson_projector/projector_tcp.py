@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 
 import asyncio
+from typing import Literal
 
 
 from .base_connection import BaseProjectorConnection
@@ -126,7 +127,7 @@ class ProjectorTcp(BaseProjectorConnection):
         response = await self.send_request(timeout=timeout, command=command + CR)
         return response
 
-    async def send_request(self, timeout, command) -> str | bool | None:
+    async def send_request(self, timeout, command) -> str | Literal[False] | None:
         """Send TCP request to Epson."""
         if not self._writer:
             await self.async_init()
@@ -162,3 +163,38 @@ class ProjectorTcp(BaseProjectorConnection):
         if not self._serial:
             self._serial = await get_serial_number(self, self._host)
         return self._serial
+
+    # Proposed API (temp implementation)
+    
+    async def send_escvp21(self, command:str) -> str:
+        """Send ESC/VP21 command to Epson."""
+
+        # This is basically the implementation from send_request
+        # Removed timeout (to be handled higher up)
+        # Removed ERR handling (to be handled higher up)
+
+        if not self._writer:
+            await self.async_init()
+
+        if self._writer and command:
+            async with self._request_lock:
+                try:
+                    pending_command = asyncio.get_running_loop().create_future()
+                    self._pending_request_future = pending_command
+
+                    raw_command = f"{command}\r".encode()
+                    _LOGGER.debug("Sending: %s", raw_command)
+                    self._writer.write(raw_command)
+                    await self._writer.drain()
+
+                    response = await pending_command
+                    response = response.decode().replace(CR_COLON, "")
+                    return response
+                except asyncio.TimeoutError as e:
+                    _LOGGER.error("Timeout error receiving response for command %s", command)
+                    if pending_command_future := self._pending_request_future:
+                        pending_command_future.cancel()
+                    self._pending_request_future = None
+                    raise
+
+        raise ConnectionError("ESC/VP.net connection is not open.")

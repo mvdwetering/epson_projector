@@ -139,3 +139,31 @@ class ProjectorSerial(BaseProjectorConnection):
             else:
                 self._serial = response
         return self._serial
+
+    # Proposed API (temp implementation)
+    
+    async def send_escvp21(self, command:str) -> str:
+        """Send ESC/VP21 command to Epson."""
+        # This is basically the implementation from send_request
+        # Removed timeout (to be handled higher up)
+        # Removed ERR handling (to be handled higher up)
+
+        if self._writer is None or self._writer.is_closing():
+            await self.async_init()
+
+        if self._writer:
+            try:
+                raw_command = f"{command}\r".encode()
+                self._writer.write(raw_command)
+                await self._writer.drain()
+                response = await self._reader.readuntil(COLON.encode())
+                response = response[:-1].decode().rstrip(CR)
+
+                _LOGGER.debug("Response from Epson %r", response)
+                return response
+            except (serialx.SerialException, OSError) as se:
+                _LOGGER.error("Error during serial write/read: %s", se)
+                self.close()
+                # Probably raise something?
+
+        raise ConnectionError("Serial connection is not open.")

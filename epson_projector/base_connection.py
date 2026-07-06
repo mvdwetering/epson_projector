@@ -30,3 +30,15 @@ class BaseProjectorConnection(abc.ABC):
     def close(self):
         """Close the connection."""
         pass
+
+    # Proposed API, alternative to send_command, send_request, and get_property
+
+    @abc.abstractmethod
+    async def send_escvp21(self, command:str) -> str:
+        """
+        Send ESC/VP21 command to Epson and return the response. Just transmission, no interpretation.
+
+        :param str command: Plain ESC/VP21 command to send (without any \r or :) e.g. "PWR?" or "SOURCE 30"
+        :return: Response from the projector as a string (without trailing \r or :)
+        """
+        pass
