@@ -16,7 +16,7 @@ from .const import (
     STATE_UNAVAILABLE,
     JSON_QUERY,
 )
-from .error import ProjectorUnavailableError
+from .error import ProjectorUnavailableError, UnauthorizedError
 from .easymp import get_serial_number
 
 _LOGGER = logging.getLogger(__name__)
@@ -29,13 +29,13 @@ class ProjectorHttp(BaseProjectorConnection):
     Control your projector with Python.
     """
 
-    def __init__(self, host, websession, port=80):
+    def __init__(self, host, websession: aiohttp.ClientSession, port=80):
         """
         Epson Projector controller.
 
-        :param str host:        IP address or hostname of Projector
-        :param obj websession:  AioHttpWebsession for HTTP protocol
-        :param int port:        Port to connect to. Default 80.
+        :param str                   host:        IP address or hostname of Projector
+        :param aiohttp.ClientSession websession:  AioHttpWebsession for HTTP protocol
+        :param int                   port:        Port to connect to. Default 80.
         """
         self._host = host
         self._http_url = f"http://{self._host}:{port}/cgi-bin/"
@@ -81,6 +81,8 @@ class ProjectorHttp(BaseProjectorConnection):
                     url=url, params=params, headers=self._headers
                 ) as response:
                     _LOGGER.debug("Received response, status: %s", response.status)
+                    if response.status == 401:
+                        raise UnauthorizedError("Unauthorized access to projector.")
                     if response.status != HTTP_OK:
                         _LOGGER.warning("Error message %d from Epson.", response.status)
                         return False
