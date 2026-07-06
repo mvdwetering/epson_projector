@@ -69,6 +69,10 @@ class Projector:
         """Get serial number from device."""
         return await self._projector.get_serial_number()
 
+    async def get_serial_number_alt(self):
+        """Get serial number from device."""
+        return await self.get("SNO")
+
     async def get_power(self):
         """Get Power info."""
         _LOGGER.debug("Getting POWER info")
@@ -101,3 +105,27 @@ class Projector:
         if self._lock.checkLock():
             return BUSY
         return await self._projector.send_request(params=command, timeout=10)
+
+    # A "low level" API
+    #
+    # Not sure I like it yet.
+    # There are get and set commands with multiple parameters, how would those work?
+    # You might as well build the string yourself at that point and send it with send_escvp21.
+    # The get does have the nice convenience of removing the "COMMAND=" prefix if it was there
+    # It might reduce the number of errors when implementing commands
+
+    async def get(self, name) -> str:
+        """
+        Get property value. The "COMMAND=" prefix is removed if it was there.
+        """
+
+        response = await self._projector.send_escvp21(f"{name}?")
+
+        prefix = f"{name}="
+        if response.startswith(prefix):
+            return response[len(prefix):]
+        return response
+
+    async def set(self, name, value) -> None:
+        """Set property value."""
+        await self._projector.send_escvp21(f"{name} {value}")

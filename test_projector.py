@@ -50,7 +50,7 @@ def _create_projector_from_args(args, password):
             projector._projector._http_url = projector._projector._http_url.replace(  # noqa: SLF001 # pyright: ignore[reportAttributeAccessIssue]
                 ":80/", f":{args.port}/"
             )
-            print(f"HTTP URL overridden to {projector._projector._http_url}")
+            print(f"HTTP URL overridden to {projector._projector._http_url}") # noqa: SLF001 # pyright: ignore[reportAttributeAccessIssue]
         elif conn_type == "tcp":
             projector._projector._port = args.port # pyright: ignore[reportAttributeAccessIssue]  # noqa: SLF001
 
@@ -78,11 +78,13 @@ async def main(args):
     assert projector is not None, "Projector should be initialized at this point"
 
     # This fails for LS11000 because does not support the additional command to get the serial number
-    data = await projector.get_serial_number()
+    #data = await projector.get_serial_number()
+    data = await projector.get_serial_number_alt()
     print(data)
 
+    # There is a Unclosed client session error because not awaiting the close
+    # This is already fixed in the PR that adds the improved constructors, so ignore for now
     projector.close()
-
 
 
 if __name__ == "__main__":
