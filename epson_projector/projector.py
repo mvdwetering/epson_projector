@@ -130,3 +130,7 @@ class Projector:
     async def _set(self, name, value) -> None:
         """Set property value."""
         await self._projector.send_escvp21(f"{name} {value}")
+
+    async def send_raw(self, command) -> str:
+        """Send a raw command to the projector."""
+        return await self._projector.send_escvp21(command)
