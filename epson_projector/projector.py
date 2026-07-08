@@ -71,7 +71,7 @@ class Projector:
 
     async def get_serial_number_alt(self):
         """Get serial number from device."""
-        return await self.get("SNO")
+        return await self._get("SNO")
 
     async def get_power(self):
         """Get Power info."""
@@ -113,8 +113,9 @@ class Projector:
     # You might as well build the string yourself at that point and send it with send_escvp21.
     # The get does have the nice convenience of removing the "COMMAND=" prefix if it was there
     # It might reduce the number of errors when implementing commands
+    # Lets keep get and set private for now
 
-    async def get(self, name) -> str:
+    async def _get(self, name) -> str:
         """
         Get property value. The "COMMAND=" prefix is removed if it was there.
         """
@@ -126,6 +127,6 @@ class Projector:
             return response[len(prefix):]
         return response
 
-    async def set(self, name, value) -> None:
+    async def _set(self, name, value) -> None:
         """Set property value."""
         await self._projector.send_escvp21(f"{name} {value}")
