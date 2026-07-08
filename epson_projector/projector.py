@@ -1,6 +1,8 @@
 """Main of Epson projector module."""
 import logging
 
+from epson_projector.enums import KeyCodes
+
 from .base_connection import BaseProjectorConnection
 from .const import BUSY, ESCVPNET_PORT, HTTP_PORT, POWER, HTTP, TCP, SERIAL
 from .timeout import get_timeout
@@ -134,3 +136,38 @@ class Projector:
     async def send_raw(self, command) -> str:
         """Send a raw command to the projector."""
         return await self._projector.send_escvp21(command)
+
+    # Convenience API
+    # Basically wrappers that use plain Python types and hide the command
+
+    async def get_lamp_hours(self) -> int:
+        """Get lamp hours."""
+        return int(await self._get("LAMP"))
+    
+    async def lamp_hours_get(self) -> int:
+        """Get lamp hours."""
+        return int(await self._get("LAMP"))    
+    
+
+    async def send_key(self, key_code: KeyCodes) -> None:
+        """Send a key press to the projector."""
+        await self._set("KEY", key_code.value)
+
+
+    # Some naming options
+
+    async def vol_get(self) -> int:
+        """Get volume level, range 0-255."""
+        return int(await self._get("VOL"))
+    
+    async def vol_set(self, level:int) -> None:
+        """Set volume level, range 0-255."""
+        await self._set("VOL", str(level))
+
+    async def set_vol(self, level:int) -> None:
+        """Set volume level, range 0-255."""
+        await self._set("VOL", str(level))        
+
+    async def set_volume(self, level:int) -> None:
+        """Set volume level, range 0-255."""
+        await self._set("VOL", str(level))        
