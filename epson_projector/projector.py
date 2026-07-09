@@ -37,7 +37,6 @@ class Projector:
     brightness = ProjectorCommandDescriptor(BrightCommand)
     contrast = ProjectorCommandDescriptor(ContrastCommand)
     density = ProjectorCommandDescriptor(DensityCommand)
-    power = ProjectorCommandDescriptor(PwrCommand)
 
     def __init__(
         self,
