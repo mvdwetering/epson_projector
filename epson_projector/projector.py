@@ -1,7 +1,18 @@
 """Main of Epson projector module."""
+
 import logging
 
-from epson_projector.enums import KeyCodes
+from .commands import (
+    BrightCommand,
+    CModeCommand,
+    ContrastCommand,
+    DensityCommand,
+    ProjectorCommandDescriptor,
+    PwrCommand,
+    SourceCommand,
+    VolCommand,
+)
+from .enums import KeyCodes
 
 from .base_connection import BaseProjectorConnection
 from .const import BUSY, ESCVPNET_PORT, HTTP_PORT, POWER, HTTP, TCP, SERIAL
@@ -19,6 +30,14 @@ class Projector:
     Control your projector with Python.
     """
 
+    # power = ProjectorCommandDescriptor(PwrCommand)
+    # source = ProjectorCommandDescriptor(SourceCommand)
+    # colormode = ProjectorCommandDescriptor(CModeCommand)
+    # volume = ProjectorCommandDescriptor(VolCommand)
+    brightness = ProjectorCommandDescriptor(BrightCommand)
+    contrast = ProjectorCommandDescriptor(ContrastCommand)
+    density = ProjectorCommandDescriptor(DensityCommand)
+
     def __init__(
         self,
         host,
@@ -26,7 +45,7 @@ class Projector:
         type=HTTP,
         timeout_scale=1.0,
         http_port=HTTP_PORT,
-        tcp_password=None
+        tcp_password=None,
     ):
         """
         Epson Projector controller.
@@ -42,22 +61,34 @@ class Projector:
         self._type = type
         self._timeout_scale = timeout_scale
         self._power = None
+
         self._projector:BaseProjectorConnection
+
         if self._type == HTTP:
             from .projector_http import ProjectorHttp
+
             self._projector = ProjectorHttp(
                 host=host, websession=websession, port=http_port
             )
         elif self._type == TCP:
             from .projector_tcp import ProjectorTcp
+
             self._projector = ProjectorTcp(host, ESCVPNET_PORT, password=tcp_password)
         elif self._type == SERIAL:
             from .projector_serial import ProjectorSerial
+
             self._projector = ProjectorSerial(host)
         else:
-            raise ValueError(
-                f"Invalid type {self._type}."
-            )
+            raise ValueError(f"Invalid type {self._type}.")
+
+        # Commands
+        self.power = PwrCommand(self._projector)
+        self.source = SourceCommand(self._projector)
+        self.colormode = CModeCommand(self._projector)
+        self.volume = VolCommand(self._projector)
+        # self.brightness = BrightCommand()
+        # self.contrast = ContrastCommand()
+        # self.density = DensityCommand()
 
     def close(self):
         """Close connection."""
