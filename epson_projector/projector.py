@@ -73,7 +73,7 @@ class Projector:
 
     async def get_serial_number_alt(self):
         """Get serial number from device."""
-        return await self._get("SNO")
+        return await self._projector.get("SNO")
 
     async def get_power(self):
         """Get Power info."""
@@ -108,31 +108,6 @@ class Projector:
             return BUSY
         return await self._projector.send_request(params=command, timeout=10)
 
-    # A "low level" API
-    #
-    # Not sure I like it yet.
-    # There are get and set commands with multiple parameters, how would those work?
-    # You might as well build the string yourself at that point and send it with send_escvp21.
-    # The get does have the nice convenience of removing the "COMMAND=" prefix if it was there
-    # It might reduce the number of errors when implementing commands
-    # Lets keep get and set private for now
-
-    async def _get(self, name) -> str:
-        """
-        Get property value. The "COMMAND=" prefix is removed if it was there.
-        """
-
-        response = await self._projector.send_escvp21(f"{name}?")
-
-        prefix = f"{name}="
-        if response.startswith(prefix):
-            return response[len(prefix):]
-        return response
-
-    async def _set(self, name, value) -> None:
-        """Set property value."""
-        await self._projector.send_escvp21(f"{name} {value}")
-
     async def send_raw(self, command) -> str:
         """Send a raw command to the projector."""
         return await self._projector.send_escvp21(command)
@@ -142,32 +117,31 @@ class Projector:
 
     async def get_lamp_hours(self) -> int:
         """Get lamp hours."""
-        return int(await self._get("LAMP"))
-    
+        return int(await self._projector.get("LAMP"))
+
     async def lamp_hours_get(self) -> int:
         """Get lamp hours."""
-        return int(await self._get("LAMP"))    
-    
+        return int(await self._projector.get("LAMP"))
 
     async def send_key(self, key_code: KeyCodes) -> None:
         """Send a key press to the projector."""
-        await self._set("KEY", key_code.value)
-
+        await self._projector.set("KEY", key_code.value)
 
     # Some naming options
 
     async def vol_get(self) -> int:
         """Get volume level, range 0-255."""
-        return int(await self._get("VOL"))
-    
-    async def vol_set(self, level:int) -> None:
-        """Set volume level, range 0-255."""
-        await self._set("VOL", str(level))
+        return int(await self._projector.get("VOL"))
 
-    async def set_vol(self, level:int) -> None:
+    async def vol_set(self, level: int) -> None:
         """Set volume level, range 0-255."""
-        await self._set("VOL", str(level))        
+        await self._projector.set("VOL", str(level))
 
-    async def set_volume(self, level:int) -> None:
+    async def set_vol(self, level: int) -> None:
         """Set volume level, range 0-255."""
-        await self._set("VOL", str(level))        
+        await self._projector.set("VOL", str(level))
+
+    async def set_volume(self, level: int) -> None:
+        """Set volume level, range 0-255."""
+        await self._projector.set("VOL", str(level))
+
