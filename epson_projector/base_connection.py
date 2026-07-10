@@ -1,6 +1,8 @@
 """Base class for Epson projector connections (HTTP, Serial, TCP)."""
 import abc
+import logging
 
+_LOGGER = logging.getLogger(__name__)
 class BaseProjectorConnection(abc.ABC):
     """
     Abstract base class for Epson projector connections.
@@ -58,12 +60,15 @@ class BaseProjectorConnection(abc.ABC):
 
         response = await self.send_escvp21(f"{name}?")
 
-        if response == "ERR":
-            return None
+        _LOGGER.debug(f"get({name}) response: {response}")  # noqa: SLF001
 
         prefix = f"{name}="
         if response.startswith(prefix):
-            return response[len(prefix) :]
+            response = response[len(prefix):]
+
+        if response == "ERR":
+            return None
+
         return response
 
     async def set(self, name, value) -> None:

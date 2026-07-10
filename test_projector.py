@@ -84,6 +84,10 @@ async def main(args):
 
     # await projector.contrast.set(50)
     # await projector.volume.set(20)
+    data = await projector.volume.get()
+    if data is not None:
+        print(data)
+
     data = await projector.colormode.get()
     if data:
         print(data.value, data.name)
