@@ -85,7 +85,8 @@ async def main(args):
     # await projector.contrast.set(50)
     # await projector.volume.set(20)
     data = await projector.colormode.get()
-    print(data.value, data.name)
+    if data:
+        print(data.value, data.name)
 
     # There is a Unclosed client session error because not awaiting the close
     # This is already fixed in the PR that adds the improved constructors, so ignore for now
