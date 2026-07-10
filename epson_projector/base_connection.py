@@ -51,12 +51,15 @@ class BaseProjectorConnection(abc.ABC):
     # The get does have the nice convenience of removing the "COMMAND=" prefix if it was there
     # It might reduce the number of errors when implementing commands
 
-    async def get(self, name) -> str:
+    async def get(self, name) -> str | None:
         """
         Get property value. The "COMMAND=" prefix is removed if it was there.
         """
 
         response = await self.send_escvp21(f"{name}?")
+
+        if response == "ERR":
+            return None
 
         prefix = f"{name}="
         if response.startswith(prefix):

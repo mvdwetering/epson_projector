@@ -98,9 +98,11 @@ class GetMixin(Generic[T]):
     """Mixin that implements get() by calling _value_type on the raw response."""
     _value_type: Callable[[str], T]
 
-    async def get(self: _SupportsSetGetOperatorMixin[T]) -> T:
-        raw = await self._connection.get(self.cmd)
-        return self._value_type(raw)
+    async def get(self: _SupportsSetGetOperatorMixin[T]) -> T | None:
+        value = await self._connection.get(self.cmd)
+        if value is not None:
+            return self._value_type(value)
+        return None
 
 class SetEnumMixin:
     """Mixin for commands whose set value is an enum (passes value.value)."""
@@ -131,14 +133,20 @@ class PwrCommand(ProjectorCommand):
     async def off(self) -> None:
         await self._connection.set(self.cmd, "OFF")
 
-    async def get(self) -> PowerStatus:
-        return PowerStatus(await self._connection.get(self.cmd))
+    async def get(self) -> PowerStatus | None:
+        value = await self._connection.get(self.cmd) 
+        if value is not None:
+            return PowerStatus(value)
+        return None
 
 class SourceCommand(ProjectorCommand):
     cmd = "SOURCE"
 
-    async def get(self) -> Source:
-        return Source(await self._connection.get(self.cmd))
+    async def get(self) -> Source | None:
+        value = await self._connection.get(self.cmd)
+        if value is not None:
+            return Source(value)
+        return None
 
     async def set(self, source: Source) -> None:
         await self._connection.set(self.cmd, source.value)
