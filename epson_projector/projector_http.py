@@ -107,7 +107,7 @@ class ProjectorHttp(BaseProjectorConnection):
 
     # Proposed API (temp implementation)
     
-    async def send_escvp21(self, command:str) -> str:
+    async def _send_escvp21_impl(self, command:str) -> str:
         """Send ESC/VP21 command to Epson."""
 
         # This is basically the implementation from send_request
