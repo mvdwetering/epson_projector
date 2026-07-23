@@ -1,2 +1,2 @@
 """Version of Epson projector module."""
-__version__ = "123.4.1"
+__version__ = "123.5.0"
