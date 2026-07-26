@@ -146,13 +146,15 @@ class Projector:
     # Convenience API
     # Basically wrappers that use plain Python types and hide the command
 
-    async def get_lamp_hours(self) -> int:
+    async def get_lamp_hours(self) -> int | None:
         """Get lamp hours."""
-        return int(await self._projector.get("LAMP"))
+        value = await self._projector.get("LAMP")
+        return int(value) if value is not None else None
 
-    async def lamp_hours_get(self) -> int:
+    async def lamp_hours_get(self) -> int | None:
         """Get lamp hours."""
-        return int(await self._projector.get("LAMP"))
+        value = await self._projector.get("LAMP")
+        return int(value) if value is not None else None
 
     async def send_key(self, key_code: KeyCodes) -> None:
         """Send a key press to the projector."""
@@ -160,9 +162,10 @@ class Projector:
 
     # Some naming options
 
-    async def vol_get(self) -> int:
+    async def vol_get(self) -> int | None:
         """Get volume level, range 0-255."""
-        return int(await self._projector.get("VOL"))
+        value = await self._projector.get("VOL")
+        return int(value) if value is not None else None
 
     async def vol_set(self, level: int) -> None:
         """Set volume level, range 0-255."""
