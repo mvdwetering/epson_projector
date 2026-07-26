@@ -7,7 +7,7 @@ from .commands import (
     CModeCommand,
     ContrastCommand,
     DensityCommand,
-    ProjectorCommandDescriptor,
+    LensPositionGroupCommand,
     PwrCommand,
     SourceCommand,
     VolCommand,
