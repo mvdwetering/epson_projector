@@ -12,6 +12,7 @@ from .commands import (
     SourceCommand,
     VolCommand,
 )
+from .descriptor_commands import ProjectorCommandDescriptor
 from .enums import KeyCodes
 
 from .base_connection import BaseProjectorConnection
