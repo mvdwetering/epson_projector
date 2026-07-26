@@ -6,7 +6,7 @@ from enum import StrEnum
 from typing import Callable, Generic, Protocol, TypeVar
 
 from .base_connection import BaseProjectorConnection
-from .enums import CMode, PowerStatus, Source
+from .enums import CMode, Illuminance, ImgProc, PowerStatus, Source
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
@@ -128,3 +128,108 @@ class ContrastCommand(IntRangeBaseCommand):
 
 class DensityCommand(IntRangeBaseCommand):
     cmd = "DENSITY"
+
+# Other commands not used in HA, but that are mentioned in the const file
+
+class ImgProcCommand(ProjectorCommand, GetMixin, SetEnumMixin, InitMixin):
+    cmd = "IMGPROC"
+    _value_type = ImgProc
+
+class IlluminanceCommand(ProjectorCommand, GetMixin, SetEnumMixin, InitMixin):
+    cmd = "ILLUMINANCE"
+    _value_type = Illuminance
+
+
+# What names to use for lens position commands?
+# Manual uses terms: Load, Save, Erase, Reset is unclear what it means and there is Rename but dont see command for that
+# Command names are: POPLP, PUSHLP, ERASELP
+# Excel descriptions are: Call of lensposition, Registration of lensposition, Deletion of lensposition
+
+class LensPositionLoadCommand(ProjectorCommand):
+    cmd = "POPLP"
+
+    async def set(self, slot: int) -> None:
+        if slot < 1 or slot > 10:
+            raise ValueError("Lens position slot must be between 1 and 10")
+        return await self._connection.set(self.cmd, format(slot, "X"))
+
+# class LensPositionSaveCommand(ProjectorCommand):
+class SaveLensPositionCommand(LensPositionLoadCommand):
+    cmd = "PUSHLP"
+
+# The other lensposition commands are no in the const, but lets
+# see how it would look like if they were there.
+class LensPositionEraseCommand(ProjectorCommand):
+    cmd = "ERASELP"
+
+    # Need to allow for 0 to 10, as 0 is used to delete all positions
+    # Maybe it could be its own command to avoid accidents? (implemented)
+    # But it does not follow the pattern of 1 command class per ESC/VP21 command
+    # Is that a problem?
+    async def set(self, slot: int) -> None:
+        if slot < 0 or slot > 10:
+            raise ValueError("Lens position slot must be between 1 and 10")
+        return await self._connection.set(self.cmd, format(slot, "X"))
+
+class LensPositionEraseAllCommand(ProjectorCommand):
+    cmd = "ERASELP"
+
+    # Slot 0 is all
+    async def set(self) -> None:
+        return await self._connection.set(self.cmd, "00")
+
+# Could also make it fancier by having a LensPosititionCommand with "subcommands"
+# But doing it like this results in a bit weird usage by having to call set on them.
+#
+# await projector.lens_position.save.set(1)
+# await projector.lens_position.load.set(1)
+# await projector.lens_position.erase.set(1)
+# await projector.lens_position.erase_all.set()
+class LensPositionGroupCommand():
+    def __init__(self, connection: BaseProjectorConnection):
+        self.load = LensPositionLoadCommand(connection)
+        self.save = SaveLensPositionCommand(connection)
+        self.erase = LensPositionEraseCommand(connection)
+        self.erase_all = LensPositionEraseAllCommand(connection)
+
+# Alternatively, could make it like this
+# Which I think looks nicer/makes more sense, 
+# but it is not following the normal ESC/VP21 command pattern with set/get
+#
+# await projector.lens_position.save(1)
+# await projector.lens_position.load(2)
+# await projector.lens_position.erase(3)
+# await projector.lens_position.erase_all()
+class LensPositionCommandAlt(ProjectorCommand):
+
+    async def save(self, slot: int) -> None:
+        if slot < 1 or slot > 10:
+            raise ValueError("Lens position slot must be between 1 and 10")
+        return await self._connection.set("PUSHLP", format(slot, "X"))
+
+    async def load(self, slot: int) -> None:
+        if slot < 1 or slot > 10:
+            raise ValueError("Lens position slot must be between 1 and 10")
+        return await self._connection.set("POPLP", format(slot, "X"))
+
+    async def erase(self, slot: int) -> None:
+        if slot < 1 or slot > 10:
+            raise ValueError("Lens position slot must be between 1 and 10")
+        return await self._connection.set("ERASELP", format(slot, "X"))
+
+    async def erase_all(self) -> None:
+        return await self._connection.set("ERASELP", "00")
+
+
+# Memory commands are similar to lens position commands, but with a type parameter for the memory type
+
+class LoadMemoryCommand(ProjectorCommand):
+    cmd = "POPMEM"
+
+    # There is no known projector that uses another memory type than 02
+    # this is based on the info in the Excel sheet which contained 300 models that support POPMEM command
+    # So lets just hardcode it to keep the API simple.
+    async def set(self, slot: int) -> None:
+        if slot < 1 or slot > 10:
+            raise ValueError("Memory slot must be between 1 and 10")
+        return await self._connection.set(self.cmd, f"02 {format(slot, 'X')}")

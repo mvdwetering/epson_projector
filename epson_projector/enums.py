@@ -112,6 +112,38 @@ class CMode(StrEnum):
         _LOGGER.warning("Unknown value '%s' for %s", value, cls.__name__)
         return cls._UNKNOWN
 
+class Illuminance(StrEnum):
+    """Illuminance mode of the projector."""
+
+    NORMAL = "00"
+    """Normal"""
+    ECO = "01"
+    """Eco"""
+
+    _UNKNOWN = "??"
+    """Unknown in case unsupported value is returned by projector."""
+
+    @classmethod
+    def _missing_(cls, value: object) -> Illuminance:
+        _LOGGER.warning("Unknown value '%s' for %s", value, cls.__name__)
+        return cls._UNKNOWN
+
+class ImgProc(StrEnum):
+    """Image processing mode of the projector."""
+
+    FINE = "00"
+    """Fine"""
+    FAST = "01"
+    """Fast"""
+
+    _UNKNOWN = "??"
+    """Unknown in case unsupported value is returned by projector."""
+
+    @classmethod
+    def _missing_(cls, value: object) -> ImgProc:
+        _LOGGER.warning("Unknown value '%s' for %s", value, cls.__name__)
+        return cls._UNKNOWN
+
 class Source(StrEnum):
     """Input source of the projector."""
 

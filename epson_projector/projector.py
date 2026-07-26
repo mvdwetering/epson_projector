@@ -7,6 +7,7 @@ from .commands import (
     CModeCommand,
     ContrastCommand,
     DensityCommand,
+    LensPositionCommandAlt,
     LensPositionGroupCommand,
     PwrCommand,
     SourceCommand,
@@ -90,6 +91,8 @@ class Projector:
         # self.brightness = BrightCommand()
         # self.contrast = ContrastCommand()
         # self.density = DensityCommand()
+        self.lens_position = LensPositionGroupCommand(self._projector)
+        self.lens_position_alt = LensPositionCommandAlt(self._projector)
 
     def close(self):
         """Close connection."""

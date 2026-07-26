@@ -92,6 +92,19 @@ async def main(args):
     if data:
         print(data.value, data.name)
 
+    # Test new lens position commands
+    # These look a bit weird
+    # await projector.lens_position.save.set(1)
+    # await projector.lens_position.load.set(1)
+    # await projector.lens_position.erase.set(1)
+    # await projector.lens_position.erase_all.set()
+ 
+    # This would read nicer, but it is not following the normal ESP/VP21 command pattern with set/get
+    # await projector.lens_position_alt.save(1)
+    # await projector.lens_position_alt.load(2)
+    # await projector.lens_position_alt.erase(3)
+    # await projector.lens_position_alt.erase_all()
+
     # There is a Unclosed client session error because not awaiting the close
     # This is already fixed in the PR that adds the improved constructors, so ignore for now
     projector.close()
