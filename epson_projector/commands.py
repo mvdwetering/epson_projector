@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 
-from enum import Enum
+from enum import StrEnum
 from typing import Callable, Generic, Protocol, TypeVar, cast, overload
 
 from .base_connection import BaseProjectorConnection
@@ -10,7 +10,7 @@ from .enums import CMode, PowerStatus, Source
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
-E = TypeVar("E", bound=Enum)
+E = TypeVar("E", bound=StrEnum)
 
 # Protocols for type checking of mixins.
 
