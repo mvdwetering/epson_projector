@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 
 from enum import StrEnum
-from typing import Callable, Generic, Protocol, TypeVar, cast, overload
+from typing import Callable, Generic, Protocol, TypeVar
 
 from .base_connection import BaseProjectorConnection
 from .enums import CMode, PowerStatus, Source
@@ -18,7 +18,7 @@ class _SupportsOperatorMixin(Protocol):
     _connection: BaseProjectorConnection
     cmd: str
 
-class _SupportsSetGetOperatorMixin(Protocol[T_co]):
+class _SupportsSetAndOrGetOperatorMixin(Protocol[T_co]):
     _connection: BaseProjectorConnection
     cmd: str
 
@@ -47,11 +47,10 @@ class MinMixin:
     async def min(self: _SupportsOperatorMixin) -> None:
         await self._connection.set(self.cmd, "MIN")
 
-class GetMixin(Generic[T]):
+class GetMixin:
     """Mixin that implements get() by calling _value_type on the raw response."""
-    _value_type: Callable[[str], T]
 
-    async def get(self: _SupportsSetGetOperatorMixin[T]) -> T | None:
+    async def get(self: _SupportsSetAndOrGetOperatorMixin[T]) -> T | None:
         value = await self._connection.get(self.cmd)
         if value is not None:
             return self._value_type(value)
@@ -59,13 +58,13 @@ class GetMixin(Generic[T]):
 
 class SetEnumMixin:
     """Mixin for commands whose set value is an enum (passes value.value)."""
-    async def set(self: _SupportsSetGetOperatorMixin[E], value: E) -> None:
+    async def set(self: _SupportsSetAndOrGetOperatorMixin[E], value: E) -> None:
         await self._connection.set(self.cmd, value.value)
 
 class SetValueMixin:
     """Mixin for commands whose set value is passed through directly."""
-    async def set(self: _SupportsSetGetOperatorMixin[T], value: T) -> None:
-        await self._connection.set(self.cmd, value)
+    async def set(self: _SupportsSetAndOrGetOperatorMixin[T], value: T) -> None:
+        await self._connection.set(self.cmd, str(value))
 
 # Commands
 
@@ -107,18 +106,18 @@ class SourceCommand(ProjectorCommand):
 # Mixin based implementations
 # Less typing, more magic
 
-class CModeCommand(ProjectorCommand, GetMixin[CMode], SetEnumMixin):
+class CModeCommand(ProjectorCommand, GetMixin, SetEnumMixin):
     cmd = "CMODE"
     _value_type = CMode
 
 
-class VolCommand(ProjectorCommand, GetMixin[int], SetValueMixin, IncMixin, DecMixin, InitMixin):
+class VolCommand(ProjectorCommand, GetMixin, SetValueMixin, IncMixin, DecMixin, InitMixin):
     cmd = "VOL"
     _value_type = int
 
 
 # Avoid repeated long definitions
-class IntRangeBaseCommand(abc.ABC, ProjectorCommand, GetMixin[int], SetValueMixin, IncMixin, DecMixin, InitMixin):
+class IntRangeBaseCommand(abc.ABC, ProjectorCommand, GetMixin, SetValueMixin, IncMixin, DecMixin, InitMixin):
     _value_type = int
    
 class BrightCommand(IntRangeBaseCommand):
