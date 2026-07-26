@@ -69,17 +69,17 @@ class BaseProjectorConnection(abc.ABC):
     # It might reduce the number of errors when implementing commands and have consistent logging.
 
     @final
-    async def get(self, name) -> str | None:
+    async def get(self, command: str) -> str | None:
         """
         Get property value. The "COMMAND=" prefix is removed if it was there.
         Returns None if the projector returned "ERR" for the command.
         """
 
-        response = await self.send_escvp21(f"{name}?")
+        response = await self.send_escvp21(f"{command}?")
 
-        _LOGGER.debug(f"get({name}) response: {response}")  # noqa: SLF001
+        _LOGGER.debug(f"get({command}) response: {response}")  # noqa: SLF001
 
-        prefix = f"{name}="
+        prefix = f"{command}="
         if response.startswith(prefix):
             response = response[len(prefix):]
 
@@ -89,6 +89,6 @@ class BaseProjectorConnection(abc.ABC):
         return response
 
     @final
-    async def set(self, name, value) -> None:
+    async def set(self, command:str, value:str) -> None:
         """Set property value."""
-        await self.send_escvp21(f"{name} {value}")
+        await self.send_escvp21(f"{command} {value}")
