@@ -127,7 +127,7 @@ class Source(StrEnum):
     """USB"""
     LAN = "53"
     """LAN"""
-    WDF = "56"
+    WFD = "56"
     """WiFi Direct"""
     HDMI2 = "A0"
     """HDMI 2"""
