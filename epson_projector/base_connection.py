@@ -50,11 +50,12 @@ class BaseProjectorConnection(abc.ABC):
             import asyncio
             self._send_escvp21_lock = asyncio.Lock()
 
-        _LOGGER.debug(f"Before lock: {command}")  # noqa: SLF001
+        _LOGGER.debug(f"= Before lock: {command}")  # noqa: SLF001
         async with self._send_escvp21_lock:
-            _LOGGER.debug(f"In lock: {command}")  # noqa: SLF001
-            return await self._send_escvp21_impl(command)
-        _LOGGER.debug(f"After lock: {command}")  # noqa: SLF001
+            _LOGGER.debug(f"= In lock: {command}")  # noqa: SLF001
+            response = await self._send_escvp21_impl(command)
+            _LOGGER.debug(f"= Leaving lock: {command} --> {response}")  # noqa: SLF001
+            return response
 
     @abc.abstractmethod
     async def _send_escvp21_impl(self, command:str) -> str:
