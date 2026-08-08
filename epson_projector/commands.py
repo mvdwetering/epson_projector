@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import abc
 
+import asyncio
 from enum import StrEnum
-from typing import Callable, Generic, Protocol, TypeVar
+import time
+from typing import Callable, Protocol, TypeVar
 
 from .base_connection import BaseProjectorConnection
 from .enums import CMode, Illuminance, ImgProc, PowerStatus, Source
@@ -83,7 +85,17 @@ class PwrCommand(ProjectorCommand):
         await self._connection.set(self.cmd, "ON")
 
     async def off(self) -> None:
+        # HTTP and ESC/VP.net stop responding when immediately executing commands 
+        # after off command returned with : These protocols return fast/immediately after sending OFF
+        # Serial is fine with it, but takes about 4 seconds to return/complete. 
+        # Lets artificially make the command take 10 seconds to match the old timing
+        # Could be turned into a decorator when needed more often
+        start = time.monotonic()
+
         await self._connection.set(self.cmd, "OFF")
+
+        time_spent = time.monotonic() - start
+        await asyncio.sleep(10-time_spent)
 
     async def get(self) -> PowerStatus | None:
         value = await self._connection.get(self.cmd) 
