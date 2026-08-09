@@ -88,14 +88,7 @@ class PwrCommand(ProjectorCommand):
         # HTTP and ESC/VP.net stop responding when immediately executing commands 
         # after off command returned with : These protocols return fast/immediately after sending OFF
         # Serial is fine with it, but takes about 4 seconds to return/complete. 
-        # Lets artificially make the command take 10 seconds to match the old timing
-        # Could be turned into a decorator when needed more often
-        start = time.monotonic()
-
-        await self._connection.set(self.cmd, "OFF")
-
-        time_spent = time.monotonic() - start
-        await asyncio.sleep(10-time_spent)
+        await self._connection.set(self.cmd, "OFF", min_duration=10)
 
     async def get(self) -> PowerStatus | None:
         value = await self._connection.get(self.cmd) 

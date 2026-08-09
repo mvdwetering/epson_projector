@@ -1,5 +1,6 @@
 """Base class for Epson projector connections (HTTP, Serial, TCP)."""
 import abc
+import time
 import logging
 from typing import final
 
@@ -37,12 +38,17 @@ class BaseProjectorConnection(abc.ABC):
     # Proposed API, alternative to send_command, send_request, and get_property
 
     @final
-    async def send_escvp21(self, command:str) -> str:
+    async def send_escvp21(self, command:str, min_duration: float | None = None) -> str:
         """
         Send ESC/VP21 command to Epson and return the response. Just transmission, no interpretation.
         Will lock the connection for the duration of the command, so it is safe to call from multiple tasks.
 
+        It is possible to extend the command with a minimum duration to wait before returning. 
+        This is useful for cases where the projector connection stops working when a next command is requested too fast.
+        Only known case so far is the power off command on HTTP and ESC/VP.net
+
         :param str command: Plain ESC/VP21 command to send (without any \r or :) e.g. "PWR?" or "SOURCE 30"
+        :param float | None min_duration: Minimum duration in seconds to wait before returning. If the command completes faster than this, it will wait the remaining time. If None, no minimum duration is enforced.
         :return: Response from the projector as a string (without trailing \r or :)
         """
 
@@ -53,7 +59,15 @@ class BaseProjectorConnection(abc.ABC):
         _LOGGER.debug(f"= Before lock: {command}")  # noqa: SLF001
         async with self._send_escvp21_lock:
             _LOGGER.debug(f"= In lock: {command}")  # noqa: SLF001
+            start = time.monotonic()
+
             response = await self._send_escvp21_impl(command)
+
+            if min_duration is not None:
+                time_spent = time.monotonic() - start
+                if time_spent <= min_duration:
+                    await asyncio.sleep(min_duration - time_spent)
+
             _LOGGER.debug(f"= Leaving lock: {command} --> {response}")  # noqa: SLF001
             return response
 
@@ -93,6 +107,6 @@ class BaseProjectorConnection(abc.ABC):
         return response
 
     @final
-    async def set(self, command:str, value:str) -> None:
+    async def set(self, command:str, value:str, min_duration: float | None = None) -> None:
         """Set property value."""
-        await self.send_escvp21(f"{command} {value}")
+        await self.send_escvp21(f"{command} {value}", min_duration=min_duration)
