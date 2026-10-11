@@ -3,6 +3,7 @@ import abc
 import time
 import logging
 from typing import final
+import asyncio
 
 _LOGGER = logging.getLogger(__name__)
 class BaseProjectorConnection(abc.ABC):
@@ -53,7 +54,6 @@ class BaseProjectorConnection(abc.ABC):
         """
 
         if not hasattr(self, '_send_escvp21_lock'):
-            import asyncio
             self._send_escvp21_lock = asyncio.Lock()
 
         _LOGGER.debug(f"= Before lock: {command}")  # noqa: SLF001
