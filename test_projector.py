@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-
 """Test and example of usage of Epson module."""
+from __future__ import annotations
+
 import argparse
+import time
 from getpass import getpass
 
 import aiohttp
@@ -14,11 +16,14 @@ from epson_projector.error import UnauthorizedError
 
 _LOGGER = logging.getLogger(__name__)
 
-def _create_projector_from_args(args, password):
+
+def _create_projector_from_args(args, password: None | str) -> epson.Projector:
     """Create a projector instance based on the command line arguments."""
     websession = None
     if args.type == "http":
-        print(f"Creating HTTP projector with host {args.host_or_serial_url} and port {args.port}")
+        print(
+            f"Creating HTTP projector with host {args.host_or_serial_url} and port {args.port}"
+        )
         conn_type = "http"
 
         middlewares = []
@@ -36,7 +41,7 @@ def _create_projector_from_args(args, password):
         conn_type = "serial"
     else:
         raise ValueError(f"Unsupported connection type: {args.type}")
-    
+
     projector = epson.Projector(
         host=args.host_or_serial_url,
         websession=websession,
@@ -50,16 +55,16 @@ def _create_projector_from_args(args, password):
             projector._projector._http_url = projector._projector._http_url.replace(  # noqa: SLF001 # pyright: ignore[reportAttributeAccessIssue]
                 ":80/", f":{args.port}/"
             )
-            print(f"HTTP URL overridden to {projector._projector._http_url}") # noqa: SLF001 # pyright: ignore[reportAttributeAccessIssue]
+            print(f"HTTP URL overridden to {projector._projector._http_url}")  # noqa: SLF001 # pyright: ignore[reportAttributeAccessIssue]
         elif conn_type == "tcp":
-            projector._projector._port = args.port # pyright: ignore[reportAttributeAccessIssue]  # noqa: SLF001
+            projector._projector._port = args.port  # pyright: ignore[reportAttributeAccessIssue]  # noqa: SLF001
 
     return projector
 
 
 async def main(args):
     password = None
-    projector = None
+    projector: epson.Projector | None = None
 
     try_again = True
     while try_again:
@@ -71,14 +76,14 @@ async def main(args):
         except UnauthorizedError:
             password = getpass("Password: ")
             try_again = True
-        except Exception as e:  
+        except Exception as e:
             print(f"Error connecting to projector: {e}")
             return
-        
+
     assert projector is not None, "Projector should be initialized at this point"
 
     # This fails for LS11000 because does not support the additional command to get the serial number
-    #data = await projector.get_serial_number()
+    # data = await projector.get_serial_number()
     data = await projector.get_serial_number_alt()
     print(data)
 
@@ -92,13 +97,17 @@ async def main(args):
     if data:
         print(data.value, data.name)
 
+    # print(time.time(), "Power off command sent...")
+    # data = await projector.power.off()
+    # print(time.time(), "Power off command returned...")
+
     # Test new lens position commands
     # These look a bit weird
     # await projector.lens_position.save.set(1)
     # await projector.lens_position.load.set(1)
     # await projector.lens_position.erase.set(1)
     # await projector.lens_position.erase_all.set()
- 
+
     # This would read nicer, but it is not following the normal ESP/VP21 command pattern with set/get
     # await projector.lens_position_alt.save(1)
     # await projector.lens_position_alt.load(2)
@@ -138,8 +147,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    logging.basicConfig(level=args.loglevel,
-                        format='%(asctime)s %(levelname)-8s %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S')
+    logging.basicConfig(
+        level=args.loglevel,
+        format="%(asctime)s %(levelname)-8s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
     asyncio.run(main(args))
